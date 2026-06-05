@@ -56,8 +56,15 @@ def extract_tool( file_type: Literal["image", "pdf"], content_b64: str) -> dict:
     """ Extract text from an image or PDF. 
         PDF falls back to OCR automatically if no native text found.
         Returns extracted_text and ocr_confidence.
+        For pdf ocr_confidence is None if native text found.
+        
+        Args: File type (image or pdf)  and base64 encoded file content.
+        
+        Return: Extracted text and OCR confidence score.
     """
     file_bytes = base64.b64decode(content_b64)
     
     text, conf = extract_image(file_bytes) if file_type == "image" else extract_pdf(file_bytes)
+    
+    
     return {"extracted_text": text, "ocr_confidence": conf}
