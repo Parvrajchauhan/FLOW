@@ -8,8 +8,8 @@ SYSTEM = """You a helpful assistent who answer according to user query"""
 def qa_node(state: State) -> dict:
     extracted = state.get("extracted_texts", {})
     raw_text = state.get("raw_text","")
-    audio_transcript = state.get("audio_transcript")
-    yt_transcript = state.get("yt_transcript")
+    audio_transcript = state.get("audio_transcript","")
+    yt_transcript = state.get("yt_transcript","")
 
     sources = []
 
@@ -30,4 +30,5 @@ def qa_node(state: State) -> dict:
         f"Sources:\n\n{source_text}\n\n" 
         f"User Question:\n{raw_text}")
 
-    return {"messages": [response]}
+    return {"messages": [response],"plan_trace": ["QA_Node: query is answered"],
+        }

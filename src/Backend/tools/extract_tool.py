@@ -68,10 +68,6 @@ def extract_tool(file_type: Literal["image", "pdf"],file_path: str) -> dict:
     with open(file_path, "rb") as f:
         file_bytes = f.read()
 
-    text, conf = (
-        extract_image(file_bytes)
-        if file_type == "image"
-        else extract_pdf(file_bytes)
-    )
+    text, conf = ( extract_image(file_bytes) if file_type == "image" else extract_pdf(file_bytes))
     
     return {"extracted_text": text,"ocr_confidence": conf}

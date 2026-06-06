@@ -18,4 +18,6 @@ def summarize_node(state: State) -> dict:
 
     response = llm.invoke(f"{SYSTEM}\n\nContent:\n{content_to_summarize} \n\n raw query: {raw}" )
 
-    return {"messages": [response]}
+
+    return {"messages": [response],"plan_trace":  ["Summarize_node: Text is Summarized"],
+        }

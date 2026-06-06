@@ -33,11 +33,11 @@ def parse_tool_results(state: State) -> dict:
 
     extracted_texts = dict(state.get("extracted_texts", {}))
 
-    audio_transcript = state.get("audio_transcript")
+    audio_transcript = state.get("audio_transcript","")
 
-    yt_transcript = state.get("yt_transcript")
+    yt_transcript = state.get("yt_transcript","")
     
-    ocr_confidences= state.get("ocr_confidences")
+    ocr_confidences= state.get("ocr_confidences",{})
 
     messages = state.get("messages", [])
 
@@ -75,7 +75,7 @@ def parse_tool_results(state: State) -> dict:
         filename = get_filename_from_path(state.get("file_registry", {}),tool_path)
         if filename:
             extracted_texts[filename] = data["extracted_text"]
-            ocr_confidences[filename] = data.get("ocr_confidence")
+            ocr_confidences[filename] = data.get("ocr_confidence",{})
 
     # audio_tool
     elif (last_tool.name == "audio_tool" and "transcript" in data):
@@ -99,11 +99,13 @@ def executor_node(state: State) -> State:
 
     system = SYSTEM.format(tool_sequence=json.dumps(tool_sequence), raw_text=state.get("raw_text", ""),
     file_registry=json.dumps(state.get("file_registry", {}),indent=2),
-    extracted_texts=json.dumps(state.get("extracted_texts", {}),indent=2))
+    extracted_texts=json.dumps(state.get("extracted_texts", {}),indent=2),
+    audio_transcript=state.get("audio_transcript", ""))
 
-    all_messages = [SystemMessage(content=system), state["messages"]] 
+    all_messages = [SystemMessage(content=system), *state["messages"]] 
+    
     response = executor_llm.invoke(all_messages)
     
     remaining = (tool_sequence[1:] if response.tool_calls else [])
     
-    return {"messages": [response],"tool_sequence": remaining, **updates}
+    return {"messages": [response],"tool_sequence": remaining,"plan_trace": ["Excutor_Node: Next tool or node is called"], **updates}

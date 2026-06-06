@@ -14,4 +14,5 @@ def sentiment_node(state: State) -> dict:
 
     response = llm.invoke(f"{SYSTEM}\n\nAnalyze sentiment of:\n\n{text}\n\n raw query: {raw}")
 
-    return {"messages": [response]}
+    return {"messages": [response],"plan_trace":["Sentiment_node: sentiment is determined"],
+        }

@@ -41,8 +41,9 @@ builder.add_edge(START,      "ingest")
 builder.add_edge("ingest",   "planner")
 
 builder.add_conditional_edges("planner", route_after_planner, {
-    "clarify":           "clarify",
-    "executor":          "executor",
+    "clarify":  "clarify",
+    "executor":  "executor",
+    "formatter": "formatter"
 })
 
 builder.add_conditional_edges("executor", route_after_executor, {
@@ -58,11 +59,11 @@ builder.add_conditional_edges("executor", route_after_executor, {
 
 builder.add_edge("tools",    "executor") 
 builder.add_edge("clarify",     "formatter")
-builder.add_edge("summarize",   "formatter")
-builder.add_edge("sentiment",   "formatter")
-builder.add_edge("code",        "formatter")
-builder.add_edge("general_query",    "formatter")
-builder.add_edge("cross_input", "formatter")
+builder.add_edge("summarize",   "planner")
+builder.add_edge("sentiment",   "planner")
+builder.add_edge("code",        "planner")
+builder.add_edge("general_query",    "planner")
+builder.add_edge("cross_input", "planner")
 builder.add_edge("formatter",   END)
 
 graph = builder.compile()

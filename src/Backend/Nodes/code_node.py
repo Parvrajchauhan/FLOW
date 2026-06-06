@@ -20,4 +20,6 @@ def code_node(state: State) -> dict:
 
     response = llm.invoke(f"{SYSTEM}\n\nAnalyze this code:\n\n{code_text} \n\n raw query: {raw}")
 
-    return {"messages": [response]}
+
+    return {"messages": [response],"plan_trace": ["Code_Node:Code is reviewed"],
+        }

@@ -10,8 +10,8 @@ SYSTEM = """You are a multi-source analyst. You will receive information extract
 def cross_input_node(state: State) -> dict:
     extracted = state.get("extracted_texts", {})
     raw_text = state.get("raw_text","Analyze all available sources.")
-    audio_transcript = state.get("audio_transcript")
-    yt_transcript = state.get("yt_transcript")
+    audio_transcript = state.get("audio_transcript","")
+    yt_transcript = state.get("yt_transcript","")
 
     sources = []
 
@@ -35,4 +35,6 @@ def cross_input_node(state: State) -> dict:
         f"Sources:\n\n{source_text}\n\n" 
         f"User Question:\n{raw_text}")
 
-    return {"messages": [response]}
+
+    return {"messages": [response],"plan_trace":  ["Cross_query_Node: analysis is done"],
+        }

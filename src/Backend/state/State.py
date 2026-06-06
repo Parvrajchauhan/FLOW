@@ -1,5 +1,6 @@
 from typing_extensions import TypedDict,List
 from typing import Annotated
+from operator import add
 from langgraph.graph.message import add_messages
 
 class State(TypedDict):
@@ -11,6 +12,7 @@ class State(TypedDict):
     tool_sequence: list[str]
     specialist: str
     planner_reasoning: str
+    is_done: bool
     
     extracted_texts: dict[str, str]
     ocr_confidences: dict[str, float | None]
@@ -22,6 +24,6 @@ class State(TypedDict):
  
     errors: list[str]
     
-    plan_trace: list[str]
+    plan_trace:Annotated[list[str], add]
     next_node: str
     final_response: str

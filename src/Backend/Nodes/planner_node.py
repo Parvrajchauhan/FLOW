@@ -2,6 +2,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from src.Backend.LLMs.geminiLLM import get_llm
 from src.Backend.state.State import State
 from typing import TypedDict, List, Optional
+from langchain_core.messages import SystemMessage,ToolMessage,AIMessage
 import json
 
 llm = get_llm()
@@ -31,15 +32,21 @@ Rules:
     - set tool_sequence to []
     - set specialist to null
 - detect YouTube URLs in raw_text and return them in url
+
+
+You will also receive results from previously completed steps in 'completed_steps'.
+If all tasks are done and the user's request is fully satisfied, set is_done to true.
+If more work is needed, set is_done to false and provide the next tool_sequence and specialist.
+
 """
 
-PROMPT = ChatPromptTemplate.from_messages(
-    [
-        ("system", SYSTEM),
-        ("human", "User query: {raw_text}\n\nFile registry: {file_registry}")
-    ]
-)
-
+PROMPT = ChatPromptTemplate.from_messages([("system", SYSTEM),("human","User query: {raw_text}\n\n"
+                                                               "File registry: {file_registry}\n\n"
+                                                               "Already extracted texts: {extracted_texts}\n\n"
+                                                               "Audio transcript: {audio_transcript}\n\n"
+                                                               "YouTube transcript: {yt_transcript}\n\n"
+                                                               "Completed steps so far: {plan_trace}"
+                                                               "Last node output: {last_node_output}")])
 
 class PlannerOutput(TypedDict):
     tool_sequence: List[str]
@@ -48,30 +55,35 @@ class PlannerOutput(TypedDict):
     follow_up_question: Optional[str]
     reasoning: str
     url: Optional[str]
+    is_done: bool
 
 
-planner_llm = llm.with_structured_output(
-    PlannerOutput,
-    include_raw=False
-)
+planner_llm = llm.with_structured_output(PlannerOutput,include_raw=False)
 
 
 def planner_node(state: State) -> State:
 
     chain = PROMPT | planner_llm
+    
+    last_node_output = "none"
+
+    messages = state.get("messages", [])
+
+    for msg in reversed(messages):
+        if isinstance(msg, (AIMessage, ToolMessage)):
+            last_node_output = str(msg.content)
+            break
 
     try:
-        plan = chain.invoke(
-            {
-                "raw_text": state["raw_text"],
-                "file_registry": json.dumps(
-                    {
-                        k: v["type"]
-                        for k, v in state.get("file_registry", {}).items()
-                    }
-                ),
-            }
-        )
+        plan = chain.invoke({
+            "raw_text":        state["raw_text"],
+            "file_registry":   json.dumps({k: v["type"] for k, v in state.get("file_registry", {}).items()}),
+            "extracted_texts": json.dumps(state.get("extracted_texts", {})),
+            "audio_transcript": state.get("audio_transcript") or "none",
+            "yt_transcript":    state.get("yt_transcript") or "none",
+            "plan_trace":       json.dumps(state.get("plan_trace", [])),
+            "last_node_output": last_node_output,
+        })
 
     except Exception as e:
         plan = {
@@ -81,12 +93,14 @@ def planner_node(state: State) -> State:
             "follow_up_question": None,
             "reasoning": f"Planner failed: {str(e)}",
             "url": None,
+            "is_done":True
         }
 
     print("Planner Tool Sequence:", plan["tool_sequence"])
     print("Planner next task node:", plan["specialist"])
     print("Planner reasoning:", plan["reasoning"])
-
+    
+    
     return {
         "tool_sequence": plan.get("tool_sequence", []),
         "specialist": plan.get("specialist", "qa_node"),
@@ -94,8 +108,7 @@ def planner_node(state: State) -> State:
         "follow_up_question": plan.get("follow_up_question"),
         "planner_reasoning": plan.get("reasoning", ""),
         "url": plan.get("url"),
-        "plan_trace": [
-            f"Planner: {plan.get('reasoning', '')}"
-        ],
+        "plan_trace": [f"Planner: {plan.get('reasoning', '')}"],
+        "is_done":plan.get("is_done",True),
         "errors": [],
     }

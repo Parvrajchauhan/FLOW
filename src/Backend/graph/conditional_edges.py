@@ -7,7 +7,15 @@ def route_after_planner(state: State) -> Literal["clarify", "executor"]:
     if state.get("needs_clarification", False):
         return "clarify"
     
-    return "executor"
+    if state.get("tool_sequence"):
+        return "executor"
+    
+    is_done = state.get("is_done")
+    
+    if not is_done:
+        return "executor"
+    
+    return "formatter"
 
 
 def route_after_executor(state: State):
