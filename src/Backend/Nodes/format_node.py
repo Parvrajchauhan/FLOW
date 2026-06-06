@@ -4,15 +4,19 @@ from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 def formatter_node(state: State) -> dict:
     plan_trace = []
     final_response = ""
+    
+    follow_up_question = state.get("follow_up_question")
 
+    if follow_up_question:
+        return {"plan_trace": ["need clarification"],"final_response": final_response}
+    
     for msg in state["messages"]:
         if isinstance(msg, HumanMessage):
             plan_trace.append("Ingest: user input received")
 
         elif isinstance(msg, AIMessage) and msg.tool_calls:
             for tc in msg.tool_calls:
-                plan_trace.append(f"Executor: called {tc['name']} "
-                                  f"with args {list(tc['args'].keys())}")
+                plan_trace.append(f"Executor: called {tc['name']} with args {list(tc['args'].keys())}")
 
         elif isinstance(msg, ToolMessage):
             plan_trace.append(f"Tool result: {msg.name} → success")

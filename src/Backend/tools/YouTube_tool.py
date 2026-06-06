@@ -20,9 +20,7 @@ def extract_video_id(url: str) -> str:
 def youtube_tool(url: str) -> Dict[str, Any]:
     """
     Fetch transcript from a YouTube video form the  given URL. 
-    
     Args: URL of youtube video
-    
     Return: Transcript text and word count or error message if video not found or inavlid url.
     """
 
@@ -33,7 +31,8 @@ def youtube_tool(url: str) -> Dict[str, Any]:
         transcript_data = api.fetch(video_id)
 
         transcript = " ".join( snippet.text for snippet in transcript_data )
-        return { "transcript": transcript, "word_count": len(transcript.split()) }
+        
+        return { "transcript": transcript }
 
     except Exception as e:
         return { "error": str(e) }

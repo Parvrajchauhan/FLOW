@@ -14,6 +14,7 @@ from src.Backend.Nodes.summarize_node import summarize_node
 from src.Backend.Nodes.code_node import code_node
 from src.Backend.Nodes.sentiment_node import sentiment_node
 from src.Backend.Nodes.cross_input_node import cross_input_node
+from src.Backend.Nodes.qa_node import qa_node
 from src.Backend.state.State import State
 
 from .conditional_edges import route_after_planner, route_after_executor
@@ -29,6 +30,7 @@ builder.add_node("clarify",     clarify_node)
 builder.add_node("executor",    executor_node)
 builder.add_node("tools",       ToolNode(tools))
 builder.add_node("summarize",   summarize_node)
+builder.add_node("general_query",   qa_node)
 builder.add_node("sentiment",   sentiment_node)
 builder.add_node("code",        code_node)
 builder.add_node("cross_input", cross_input_node)
@@ -49,6 +51,7 @@ builder.add_conditional_edges("executor", route_after_executor, {
     "executor":          "executor",
     "cross_input_node":  "cross_input",
     "code_node":        "code",
+    "qa_node":           "general_query",
     "sentiment_node":   "sentiment",
     "formatter_node":    "formatter",
 })
@@ -58,6 +61,7 @@ builder.add_edge("clarify",     "formatter")
 builder.add_edge("summarize",   "formatter")
 builder.add_edge("sentiment",   "formatter")
 builder.add_edge("code",        "formatter")
+builder.add_edge("general_query",    "formatter")
 builder.add_edge("cross_input", "formatter")
 builder.add_edge("formatter",   END)
 

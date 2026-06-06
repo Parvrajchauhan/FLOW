@@ -6,62 +6,18 @@ from src.Backend.LLMs.geminiLLM import get_llm
 
 llm = get_llm()
 
-SYSTEM = """
-You are a code reviewer.
-
-Return ONLY:
-1. language
-2. explanation
-3. bugs
-4. time_complexity
-5. space_complexity
-"""
-
+SYSTEM = """You are a code reviewer.
+do code review and return ONLY:
+language, explanation, bugs, time_complexity, space_complexity"""
 
 def code_node(state: State) -> dict:
-    """Review code extracted from text/OCR/PDF/tool outputs."""
+    extracted = state.get("extracted_texts", {})
+    raw=state.get("raw_text", "")
+    if not extracted:
+        return {"errors": ["No code found to review."]}
 
-    code_text = ""
+    code_text = "\n\n".join( f"SOURCE: {name}\n{text}" for name, text in extracted.items())
 
-    for msg in reversed(state["messages"]):
+    response = llm.invoke(f"{SYSTEM}\n\nAnalyze this code:\n\n{code_text} \n\n raw query: {raw}")
 
-        if not isinstance(msg, ToolMessage):
-            continue
-
-        try:
-            data = json.loads(msg.content)
-
-            if isinstance(data, dict):
-                code_text = (
-                    data.get("extracted_text")
-                    or data.get("transcript")
-                    or data.get("content")
-                    or ""
-                )
-
-                if code_text:
-                    break
-
-        except Exception:
-            pass
-
-    if not code_text:
-        return {
-            "errors": ["No code found to review."]
-        }
-
-    prompt = f"""
-{SYSTEM}
-
-Analyze this code:
-
-{code_text}
-"""
-
-    response = llm.invoke(prompt)
-
-    return {
-        "messages": [response],
-        "plan_trace": state.get("plan_trace", [])
-        + ["Code Node: reviewed extracted code"]
-    }
+    return {"messages": [response]}

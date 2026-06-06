@@ -15,11 +15,6 @@ def audio_tool(file_path: str) -> dict:
 
     segments, info = model.transcribe(file_path)
 
-    transcript = " ".join(
-        segment.text.strip()
-        for segment in segments
-    )
+    transcript = " ".join(segment.text.strip() for segment in segments)
 
-    return {
-        "transcript": transcript
-    }
+    return {"transcript": transcript}
