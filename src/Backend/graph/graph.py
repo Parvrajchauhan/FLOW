@@ -16,7 +16,7 @@ from src.Backend.Nodes.sentiment_node import sentiment_node
 from src.Backend.Nodes.cross_input_node import cross_input_node
 from src.Backend.state.State import State
 
-from conditional_edges import route_after_planner, route_after_executor
+from .conditional_edges import route_after_planner, route_after_executor
 
 tools = [extract_tool, audio_tool, youtube_tool]
 
@@ -46,6 +46,7 @@ builder.add_conditional_edges("planner", route_after_planner, {
 builder.add_conditional_edges("executor", route_after_executor, {
     "tools":             "tools",
     "summarize_node":    "summarize",
+    "executor":          "executor",
     "cross_input_node":  "cross_input",
     "code_node":        "code",
     "sentiment_node":   "sentiment",
@@ -57,8 +58,10 @@ builder.add_edge("clarify",     "formatter")
 builder.add_edge("summarize",   "formatter")
 builder.add_edge("sentiment",   "formatter")
 builder.add_edge("code",        "formatter")
-builder.add_edge("analyze",     "formatter")
 builder.add_edge("cross_input", "formatter")
 builder.add_edge("formatter",   END)
 
 graph = builder.compile()
+
+def get_graph():
+    return graph

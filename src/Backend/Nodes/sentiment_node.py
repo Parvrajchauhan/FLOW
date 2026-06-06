@@ -13,7 +13,7 @@ No extra text.
 def sentiment_node(state: State) -> dict:
     """Returns sentiment label, confidence and justification."""
 
-    text = state["text"]
+    text = state["raw_text"]
         
     prompt = (SYSTEM + "\n\nAnalyze sentiment of:\n\n" + text)
 

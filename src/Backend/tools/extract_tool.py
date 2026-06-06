@@ -51,8 +51,13 @@ def extract_pdf(pdf_bytes: bytes) -> tuple[str, float | None]:
     return "\n".join(all_text), round(sum(confs) / len(confs), 4)
 
 
+from pathlib import Path
+
 @tool
-def extract_tool( file_type: Literal["image", "pdf"], content_b64: str) -> dict:
+def extract_tool(
+    file_type: Literal["image", "pdf"],
+    file_path: str
+) -> dict:
     """ Extract text from an image or PDF. 
         PDF falls back to OCR automatically if no native text found.
         Returns extracted_text and ocr_confidence.
@@ -62,9 +67,17 @@ def extract_tool( file_type: Literal["image", "pdf"], content_b64: str) -> dict:
         
         Return: Extracted text and OCR confidence score.
     """
-    file_bytes = base64.b64decode(content_b64)
-    
-    text, conf = extract_image(file_bytes) if file_type == "image" else extract_pdf(file_bytes)
-    
-    
-    return {"extracted_text": text, "ocr_confidence": conf}
+
+    with open(file_path, "rb") as f:
+        file_bytes = f.read()
+
+    text, conf = (
+        extract_image(file_bytes)
+        if file_type == "image"
+        else extract_pdf(file_bytes)
+    )
+
+    return {
+        "extracted_text": text,
+        "ocr_confidence": conf,
+    }

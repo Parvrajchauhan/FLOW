@@ -2,9 +2,12 @@ from typing_extensions import TypedDict,List
 from typing import Annotated
 from langgraph.graph.message import add_messages
 
-class AgentState(TypedDict):
+class State(TypedDict):
     messages: Annotated[List, add_messages] 
     raw_text: str
+    uploaded_files: dict[str, bytes]
+    file_registry: dict[str, dict]
+    specialist: str
     extracted_texts: dict[str, str]
     audio_transcript: str | None
     audio_duration_s: float | None
