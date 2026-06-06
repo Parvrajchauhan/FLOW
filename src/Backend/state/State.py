@@ -15,4 +15,5 @@ class AgentState(TypedDict):
     ocr_confidence: float | None  
     errors: list[str]
     plan_trace: list[str]
+    next_node: str
     final_response: str

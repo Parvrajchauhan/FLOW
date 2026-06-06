@@ -1,25 +1,22 @@
 import os
+from dotenv import load_dotenv
 from langchain_google_genai import GoogleGenerativeAI
 
-import os
-from dotenv import load_dotenv
 load_dotenv()
 
-api_key=os.getenv("GEMINI_API_KEY")
 
+def get_llm() -> GoogleGenerativeAI:
+    """Create and return a Gemini LLM instance"""
+    try:
+        api_key = os.getenv("GEMINI_API_KEY")
 
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY not found in environment variables")
 
-class GeminiLLM:
-    def __init__(self):
-        pass
-        
-    def get_llm(self):
-        try:
-            if api_key=='':
-                pass
-                
-            llm = GoogleGenerativeAI(model="models/text-bison-001", google_api_key=api_key)
-      
-        except Exception as e:
-            pass
-        return llm
+        return GoogleGenerativeAI(model="gemini-2.5-flash",google_api_key=api_key)
+
+    except ValueError:
+        raise
+
+    except Exception as e:
+        raise RuntimeError(f"Failed to initialize Gemini LLM: {str(e)}") from e
