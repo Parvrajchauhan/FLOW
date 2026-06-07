@@ -7,16 +7,25 @@ SYSTEM = """You are a summarizer. Return ONLY valid answer structure: one liner 
 
 def summarize_node(state: State) -> dict:
     extracted = state.get("extracted_texts", {})
-    raw=state.get("raw_text", "")
+    raw_text = state.get("raw_text","Analyze all available sources.")
+    audio_transcript = state.get("audio_transcript","")
+    yt_transcript = state.get("yt_transcript","")
 
-    content_to_summarize = ("\n\n".join( f"SOURCE: {name}\n{content}"
-                                        for name, content in extracted.items())
-                                        if extracted else raw)
+    sources = []
+    
+    for name, content in extracted.items():
+        if content and content.strip():
+            sources.append(f"SOURCE [{name}]:\n{content}")
 
-    if not content_to_summarize:
-        return {"errors": ["No content found for summarization."]}
+    if audio_transcript and audio_transcript.strip():
+        sources.append(f"SOURCE [audio]:\n{audio_transcript}")
 
-    response = llm.invoke(f"{SYSTEM}\n\nContent:\n{content_to_summarize} \n\n raw query: {raw}" )
+    if yt_transcript and yt_transcript.strip():
+        sources.append(f"SOURCE [youtube]:\n{yt_transcript}")
+        
+    source_text = "\n\n".join(sources)
+        
+    response = llm.invoke(f"{SYSTEM}\n\nextracted content:\n{source_text} \n\n raw query: {raw_text}" )
 
 
     return {"messages": [response],"plan_trace":  ["Summarize_node: Text is Summarized"],
