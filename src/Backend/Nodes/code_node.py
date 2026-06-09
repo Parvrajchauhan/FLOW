@@ -1,5 +1,5 @@
 import json
-
+from langchain_core.messages import SystemMessage
 from langchain_core.messages import ToolMessage
 from src.Backend.state.State import State
 from src.Backend.LLMs.geminiLLM import get_llm
@@ -17,9 +17,14 @@ def code_node(state: State) -> dict:
         return {"errors": ["No code found to review."]}
 
     code_text = "\n\n".join( f"SOURCE: {name}\n{text}" for name, text in extracted.items())
-
-    response = llm.invoke(f"{SYSTEM}\n\nAnalyze this code:\n\n{code_text} \n\n raw query: {raw}")
-
+    
+    
+    messages = [
+        SystemMessage(content=SYSTEM),
+        {"role": "user", "content": f"{code_text}"},
+    ]
+    
+    response = llm.invoke(messages)
 
     return {"messages": [response],"plan_trace": ["Code_Node:Code is reviewed"],
         }

@@ -1,5 +1,6 @@
 from src.Backend.state.State import State
 from src.Backend.LLMs.geminiLLM import get_llm
+from langchain_core.messages import SystemMessage
 
 llm = get_llm()
 
@@ -25,7 +26,12 @@ def sentiment_node(state: State) -> dict:
         
     source_text = "\n\n".join(sources)
         
-    response = llm.invoke(f"{SYSTEM}\n\nAnalyze sentiment of: \n{source_text} \n\n raw query: {raw_text}" )
+    messages = [
+        SystemMessage(content=SYSTEM),
+        {"role": "user", "content": f"Text to analyse:\n\n{source_text} raw query:{raw_text}"},
+    ]
 
+    response = llm.invoke(messages)
+    
     return {"messages": [response],"plan_trace":["Sentiment_node: sentiment is determined"],
         }

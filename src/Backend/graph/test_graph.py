@@ -2,42 +2,37 @@ from pathlib import Path
 from pprint import pprint
 
 from src.Backend.graph.graph import get_grap
-from IPython.display import Image, display
 
 graph = get_grap()
 
+pdf_path = Path(
+    r"C:\Users\parvr\Desktop\projects\FLOW\src\Backend\graph\sample.png"
+)
+
+pdf_bytes = pdf_path.read_bytes()
 
 initial_state = {
-    "raw_text": "who is india's current PM?",
+    "raw_text": "do code review of code present in the image",
 
-    "uploaded_files": {},
+    "uploaded_files": {
+        "sample.png": pdf_bytes
+    },
 
     "messages": [],
     "file_registry": {},
-    "tool_call": "",
-    "next_node": "",
-    "planner_reasoning": "",
-    "is_done": False,
-
+    "tool_sequence": [],
+    "specialist": "",
     "needs_clarification": False,
     "follow_up_question": None,
-
     "plan_trace": [],
     "errors": [],
     "url": None,
 
     # outputs
     "extracted_texts": {},
-    "ocr_confidences": {},
-    "audio_transcript": "",
     "yt_transcript": "",
-    "final_response": "",
+    "audio_transcript": "",
 }
-
-png_bytes = graph.get_graph().draw_mermaid_png()
-
-with open("graph.png", "wb") as f:
-    f.write(png_bytes)
     
 for event in graph.stream(initial_state):
     print("\n" + "=" * 80)
@@ -46,7 +41,7 @@ for event in graph.stream(initial_state):
         print(f"NODE: {node_name}")
 
         if node_output is None:
-            print(None)
+            print("WARNING: Node returned None")
             continue
 
         if "uploaded_files" in node_output:

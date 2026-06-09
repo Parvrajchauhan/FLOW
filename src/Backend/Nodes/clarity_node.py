@@ -7,4 +7,4 @@ def clarify_node(state: State) -> dict:
     
     msg = AIMessage(content=question)
     
-    return {"messages": [msg],"final_response": question}
+    return {"messages": [msg]}

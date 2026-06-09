@@ -1,9 +1,13 @@
 from src.Backend.state.State import State
 from src.Backend.LLMs.geminiLLM import get_llm
+from langchain_core.messages import SystemMessage
 
 llm = get_llm()
 
-SYSTEM = """You a helpful assistent who answer according to user query"""
+SYSTEM = """You are a helpful, friendly conversational AI assistant. 
+Answer the user's question clearly and helpfully.
+If there is extracted content available, use it to answer more accurately.
+Keep responses concise but complete."""
 
 def qa_node(state: State) -> dict:
     extracted = state.get("extracted_texts", {})
@@ -25,10 +29,15 @@ def qa_node(state: State) -> dict:
 
     source_text = "\n\n".join(sources)
 
-    response = llm.invoke(
-        f"{SYSTEM}\n\n"
-        f"Sources:\n\n{source_text}\n\n" 
-        f"User Question:\n{raw_text}")
+    user_message = f"Query: {raw_text}"
+    if source_text:
+        user_message += f"\n\nContext:\n{source_text}"
 
+    messages = [
+        SystemMessage(content=SYSTEM),
+        {"role": "user", "content": user_message},
+    ]
+
+    response = llm.invoke(messages)
     return {"messages": [response],"plan_trace": ["QA_Node: query is answered"],
         }

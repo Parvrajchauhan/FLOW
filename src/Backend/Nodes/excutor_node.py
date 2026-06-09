@@ -10,24 +10,23 @@ from src.Backend.tools.YouTube_tool import youtube_tool
 tools = [extract_tool, audio_tool, youtube_tool]
 executor_llm = get_llm().bind_tools(tools)
 
-SYSTEM = """You are a tool execution node. Your sole responsibility is to make exactly 
-the tool call specified in `tool_call`.
-## Context
+SYSTEM = """You are a tool execution node. Your sole responsibility is to make exactly the tool call specified in `tool_call`.
+Context
 - Tool to call: {tool_call}
 - File registry: {file_registry}
 - Extracted texts: {extracted_texts}
 - Audio transcript: {audio_transcript}
 
-## Rules
+Rules
 1. Make ONLY the tool call defined in `tool_call`. No other tool calls.
 2. Do NOT summarize, analyze, explain, or produce any text output.
 3. Do NOT make additional tool calls beyond the one specified.
 
-## YouTube extraction
+YouTube extraction
 If a YouTube URL appears in the user query or extracted texts AND `tool_call` references `YouTube_tool`, 
 extract the URL from the context and pass it to `YouTube_tool`.
 
-## Routing
+Routing
 - If `tool_call` is populated → execute it.
 - If `tool_call` is empty → skip execution and go directly to planner.
 """
@@ -47,17 +46,14 @@ def parse_tool_results(state: State) -> dict:
     ocr_confidences = state.get("ocr_confidences", {})
 
     messages = state.get("messages", [])
-    if not messages:
-        return {}
+    if not messages: return {}
 
     last_tool = messages[-1]
-    if not isinstance(last_tool, ToolMessage):
-        return {}
+    if not isinstance(last_tool, ToolMessage): return {}
 
     try:
         data = json.loads(last_tool.content)
-    except Exception:
-        return {}
+    except Exception: return {}
 
     tool_call_id = last_tool.tool_call_id
     tool_path = None
@@ -101,7 +97,7 @@ def executor_node(state: State) -> dict:
     tool_call = str(state.get("tool_call", "")).strip().lower()
 
     if tool_call in ["", "none", "null"]:
-        return {**updates}
+        return {}
 
     all_messages = state["messages"]
 

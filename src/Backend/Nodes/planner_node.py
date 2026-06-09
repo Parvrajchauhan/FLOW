@@ -47,8 +47,7 @@ If all tasks are done and the user's request is fully satisfied, set is_done to 
 
 PROMPT = ChatPromptTemplate.from_messages([
     ("system", SYSTEM),
-    ("human",
-     "User query: {raw_text}\n\n"
+    ("human","User query: {raw_text}\n\n"
      "File registry: {file_registry}\n\n"
      "Already extracted texts: {extracted_texts}\n\n"
      "Audio transcript: {audio_transcript}\n\n"
