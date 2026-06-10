@@ -1,6 +1,5 @@
 from langchain_core.messages import AIMessage, ToolMessage, HumanMessage, SystemMessage
 from src.Backend.state.State import State
-import json
 
 
 def _extract_text_from_content(content) -> str:
@@ -74,14 +73,11 @@ def _summarise_invoke(messages: list) -> str:
 
     return "\n\n".join(sections) if sections else "Empty invoke."
 
-
 def formatter_node(state: State) -> dict:
-    messages   = state.get("messages", [])
+    messages = state.get("messages", [])
     plan_trace = state.get("plan_trace", [])
 
-    final_response = _get_final_answer(messages)
-
-    extracted_texts: dict = state.get("extracted_texts", {})
+    extracted_texts: dict = dict(state.get("extracted_texts", {}))
 
     audio_transcript = state.get("audio_transcript", "")
     if audio_transcript:
@@ -95,6 +91,21 @@ def formatter_node(state: State) -> dict:
     if ocr_confidences:
         extracted_texts["ocr_confidences"] = ocr_confidences
 
+    final_response = _get_final_answer(messages)
+
+    if final_response == "No response generated." and extracted_texts:
+        file_texts = []
+
+        for key, value in extracted_texts.items():
+            if key == "ocr_confidences":
+                continue
+
+            if isinstance(value, str) and value.strip():
+                file_texts.append(f" {key} \n{_truncate(value, 3000)}")
+
+        final_response = "Content extracted successfully. See extracted content panel."
+    
+
     tools_used = []
     for msg in messages:
         if isinstance(msg, AIMessage) and msg.tool_calls:
@@ -103,25 +114,26 @@ def formatter_node(state: State) -> dict:
                     "tool": tc["name"],
                     "args": list(tc["args"].keys()),
                 })
+
         if isinstance(msg, ToolMessage):
             if tools_used:
                 tools_used[-1]["status"] = "success"
 
     invoke_summary = _summarise_invoke(messages)
-    
 
     formatted_output = {
-        "final_response":  final_response,
-        "plan_trace":      plan_trace,
-        "tools_used":      tools_used,
+        "final_response": final_response,
+        "plan_trace": plan_trace,
+        "tools_used": tools_used,
         "extracted_texts": extracted_texts,
-        "errors":          state.get("errors", []),
+        "errors": state.get("errors", []),
     }
-    for key,value in formatted_output.items():
-        print(f"key: {key} \nvalue: {value}")
-        
+
+    for key, value in formatted_output.items():
+        print(f"key: {key}\nvalue: {value}")
+
     return {
         "final_response": formatted_output,
-        "invoke_summary":  invoke_summary,
-        "plan_trace":       ["formatted_output"],
+        "invoke_summary": invoke_summary,
+        "plan_trace": ["formatted_output"],
     }

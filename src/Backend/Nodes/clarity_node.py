@@ -1,7 +1,7 @@
 from src.Backend.state.State import State
 from langchain_core.messages import AIMessage
 
-def clarify_node(state: State) -> dict:
+async def clarify_node(state: State) -> dict:
     
     question = state["follow_up_question"]
     

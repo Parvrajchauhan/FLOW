@@ -1,13 +1,25 @@
 from pathlib import Path
 from uuid import uuid4
+
 from langchain_core.messages import HumanMessage
+
 from src.Backend.state.State import State
 
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
-def ingest_node(state: State) -> State:
-    combined = state.get("raw_text", "")
+
+async def ingest_node(state: State) -> State:
+    combined = state.get("raw_text")
+
+    if not combined:
+        messages = state.get("messages", [])
+        for msg in reversed(messages):
+            if isinstance(msg, HumanMessage) and msg.content:
+                combined = msg.content
+                break
+
+    combined = combined or ""
 
     file_registry = {}
 
@@ -23,10 +35,12 @@ def ingest_node(state: State) -> State:
         with open(saved_path, "wb") as f:
             f.write(file_bytes)
 
-        file_registry[filename] = {"path": str(saved_path), "type": type_map.get(ext, "unknown")}
+        file_registry[filename] = {"path": str(saved_path),
+                                   "type": type_map.get(ext, "unknown")}
 
     return {
+        "raw_text": combined,
         "messages": [HumanMessage(content=combined)],
         "file_registry": file_registry,
-        "uploaded_files": {}
+        "uploaded_files": {},
     }

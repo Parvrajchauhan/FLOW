@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FLOW — Agent Interface</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div id="app">
+  <header id="topbar">
+    <div class="logo">FLOW <span>/ Multi Modal Agentic AI</span></div>
+    <div id="status-label">idle</div>
+    <div class="status-dot" id="status-dot"></div>
+  </header>
+
+<aside id="left">
+
+  <div class="panel-header">
+    <span class="panel-title">Plan trace</span>
+    <span class="badge" id="trace-count">0</span>
+  </div>
+
+  <div class="panel-scroll" id="plan-list">
+    <div class="empty-state" id="plan-empty">
+      <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2
+             M9 5a2 2 0 002 2h2a2 2 0 002-2
+             M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+      </svg>
+      <span>Steps appear<br>as agent works</span>
+    </div>
+  </div>
+
+</aside>
+
+<script>
+
+let traceCount = 0;
+
+function addTraceItem(text) {
+  document.getElementById('plan-empty').style.display = 'none';
+
+  const raw = text.toLowerCase();
+  let label = 'planner';
+  if (raw.startsWith('executor')) label = 'executor';
+  else if (raw.startsWith('tool')) label = 'tool';
+  else if (raw.startsWith('code')) label = 'code';
+  else if (raw.startsWith('form')) label = 'formatter';
+
+  const item = document.createElement('div');
+  item.className = 'trace-item';
+  item.innerHTML = `<span class="trace-label">${label}</span>${text}`;
+  document.getElementById('plan-list').appendChild(item);
+  document.getElementById('plan-list').scrollTop = 9999;
+
+  traceCount++;
+  document.getElementById('trace-count').textContent = traceCount;
+}
+
+function addToolBadge(toolName, status) {
+  const badge = document.createElement('div');
+  badge.className = `tool-badge ${status === 'running' ? 'running' : ''}`;
+  badge.id = `tool-${toolName}`;
+  badge.textContent = toolName;
+
+  const list = document.getElementById('plan-list');
+  const last = list.lastElementChild;
+  if (last && last.classList.contains('trace-item')) {
+    last.appendChild(badge);
+  } else {
+    list.appendChild(badge);
+  }
+}
+
+function updateToolBadge(toolName) {
+  const b = document.getElementById(`tool-${toolName}`);
+  if (b) b.className = 'tool-badge';
+}
+
+function resetLeftPanel() {
+  const list = document.getElementById('plan-list');
+  list.innerHTML = `
+    <div class="empty-state" id="plan-empty">
+      <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2
+             M9 5a2 2 0 002 2h2a2 2 0 002-2
+             M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+      </svg>
+      <span>Steps appear<br>as agent works</span>
+    </div>`;
+  traceCount = 0;
+  document.getElementById('trace-count').textContent = 0;
+}
+</script>
+
+
+<main id="middle">
+
+  <div id="chat-messages">
+    <div class="chat-welcome" id="chat-welcome">
+      <div class="wlogo">FLOW</div>
+      <p>Send a message or attach a file.<br>The agent will reason and respond.</p>
+    </div>
+  </div>
+
+  <div id="input-area">
+
+    <div id="file-chips"></div>
+
+    <div id="input-row">
+      <button class="file-btn" id="file-btn" title="Attach file">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586
+               a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+        </svg>
+      </button>
+      <input type="file" id="file-input"   multiple accept="image/*,.pdf,.txt,.py,.js,.ts,.json,.csv, .mp3">
+
+      <textarea id="msg-input" rows="1" placeholder="Ask the agent anything…"></textarea>
+
+      <button class="send-btn" id="send-btn" disabled>
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </button>
+    </div>
+
+  </div>
+</main>
+
+<script>
+
+const API = '/agent/stream';
+
+const msgInput  = document.getElementById('msg-input');
+const sendBtn   = document.getElementById('send-btn');
+const fileBtn   = document.getElementById('file-btn');
+const fileInput = document.getElementById('file-input');
+const chatMsgs  = document.getElementById('chat-messages');
+
+let isStreaming  = false;
+let attachedFiles = [];
+msgInput.addEventListener('input', () => {
+  msgInput.style.height = 'auto';
+  msgInput.style.height = Math.min(msgInput.scrollHeight, 100) + 'px';
+  sendBtn.disabled = !msgInput.value.trim() && !attachedFile;
+});
+
+msgInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+fileBtn.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', () => {
+  const incoming = Array.from(fileInput.files);
+  if (!incoming.length) return;
+
+  const existingNames = new Set(attachedFiles.map(f => f.name));
+  incoming.forEach(f => { if (!existingNames.has(f.name)) attachedFiles.push(f); });
+
+  fileInput.value = ''; 
+  renderChips();
+  sendBtn.disabled = false;
+});
+
+function renderChips() {
+  const container = document.getElementById('file-chips');
+  container.innerHTML = '';
+
+  attachedFiles.forEach((file, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'file-chip';
+    chip.innerHTML = `
+      <span class="chip-name">${file.name}</span>
+      <button class="chip-remove" aria-label="Remove ${file.name}">×</button>`;
+
+    chip.querySelector('.chip-remove').addEventListener('click', () => {
+      attachedFiles.splice(i, 1);
+      renderChips();
+      sendBtn.disabled = !msgInput.value.trim() && attachedFiles.length === 0;
+    });
+
+    container.appendChild(chip);
+  });
+}
+
+function addMessage(role, text, isCode = false) {
+  document.getElementById('chat-welcome').style.display = 'none';
+
+  const wrap = document.createElement('div');
+  wrap.className = `msg-wrap ${role}`;
+
+  const roleLabel = document.createElement('div');
+  roleLabel.className = 'msg-role';
+  roleLabel.textContent = role === 'user' ? 'you' : 'agent';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+
+  if (isCode) {
+    const pre = document.createElement('pre');
+    pre.textContent = text;
+    bubble.appendChild(pre);
+  } else {
+    bubble.textContent = text;
+  }
+
+  wrap.appendChild(roleLabel);
+  wrap.appendChild(bubble);
+  chatMsgs.appendChild(wrap);
+  chatMsgs.scrollTop = chatMsgs.scrollHeight;
+  return bubble;
+}
+
+function addTypingIndicator() {
+  document.getElementById('chat-welcome').style.display = 'none';
+  const wrap = document.createElement('div');
+  wrap.className = 'msg-wrap agent';
+  wrap.id = 'typing';
+
+  const roleLabel = document.createElement('div');
+  roleLabel.className = 'msg-role';
+  roleLabel.textContent = 'agent';
+
+  const ind = document.createElement('div');
+  ind.className = 'typing-indicator';
+  ind.innerHTML = `
+    <div class="typing-dot"></div>
+    <div class="typing-dot"></div>
+    <div class="typing-dot"></div>`;
+
+  wrap.appendChild(roleLabel);
+  wrap.appendChild(ind);
+  chatMsgs.appendChild(wrap);
+  chatMsgs.scrollTop = chatMsgs.scrollHeight;
+}
+
+function removeTypingIndicator() {
+  const t = document.getElementById('typing');
+  if (t) t.remove();
+}
+
+async function sendMessage() {
+  const text = msgInput.value.trim();
+  if ((!text && attachedFiles.length === 0) || isStreaming) return;
+
+  isStreaming = true;
+  sendBtn.disabled = true;
+  msgInput.value = '';
+  msgInput.style.height = 'auto';
+
+  addMessage(
+  'user',
+  text || `[${attachedFiles.length} file(s) attached]`
+);
+  if (typeof resetLeftPanel === 'function')  resetLeftPanel();
+  if (typeof resetRightPanel === 'function') resetRightPanel();
+  addTypingIndicator();
+  setStatus('active', 'thinking…');
+
+  let reqInit;
+
+  if (attachedFiles.length > 0) {
+    const fd = new FormData();
+    fd.append('message', text || 'Process this file.');
+    fd.append('session_id', 'ui-session');
+    attachedFiles.forEach(file => {
+  fd.append('files', file, file.name);
+});
+    reqInit = { method: 'POST', body: fd };               
+  } else {
+    reqInit = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, session_id: 'ui-session' }),
+    };
+  }
+
+  try {
+  const resp = await fetch(API, reqInit);
+
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+  const reader  = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer    = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+
+    const parts = buffer.split('\n\n');
+    buffer = parts.pop();
+
+    for (const part of parts) {
+      if (!part.trim()) continue;
+
+      let eventType = '';
+      let dataStr = '';
+
+      for (const line of part.split('\n')) {
+        if (line.startsWith('event:'))
+          eventType = line.slice(6).trim();
+
+        if (line.startsWith('data:'))
+          dataStr = line.slice(5).trim();
+      }
+
+      if (!dataStr) continue;
+
+      let data;
+      try {
+        data = JSON.parse(dataStr);
+      } catch {
+        continue;
+      }
+
+      switch (eventType) {
+        case 'plan_trace': {
+          setStatus('active', 'planning…');
+
+          const steps = Array.isArray(data.steps)
+            ? data.steps
+            : [String(data.steps)];
+
+          steps.forEach(s => addTraceItem(s));
+          break;
+        }
+
+        case 'tool_start':
+          setStatus('active', `running ${data.tool}…`);
+          addToolBadge(data.tool, 'running');
+          break;
+
+        case 'tool_end':
+          updateToolBadge(data.tool);
+          setStatus('active', 'processing…');
+          break;
+
+        case 'final_output': {
+          removeTypingIndicator();
+          setStatus('idle', 'done');
+
+          const fr = data.final_response || 'No response.';
+          const hasCode =
+            fr.includes('\n') &&
+            (fr.includes('def ') || fr.includes('```'));
+
+          addMessage('agent', fr, hasCode);
+
+          const extracted = data.extracted_texts || {};
+          const ocr = extracted.ocr_confidences || {};
+
+          Object.entries(extracted).forEach(([k, v]) => {
+            if (k === 'ocr_confidences') return;
+            addExtractCard(k, v, ocr[k]);
+          });
+
+          if (extracted.audio_transcript)
+            addExtractCard('audio', extracted.audio_transcript);
+
+          if (extracted.yt_transcript)
+            addExtractCard('youtube', extracted.yt_transcript);
+
+          const errs = data.errors || [];
+          if (errs.length && typeof showErrors === 'function')
+            showErrors(errs);
+
+          break;
+        }
+
+        case 'done':
+          removeTypingIndicator();
+          setStatus('idle', 'idle');
+          break;
+
+        case 'ping':
+          break;
+      }
+    }
+  }
+} catch (err) {
+    removeTypingIndicator();
+    addMessage('agent', `Error: ${err.message}`);
+    setStatus('idle', 'error');
+  } finally {
+    isStreaming    = false;
+    sendBtn.disabled = !msgInput.value.trim();
+    attachedFiles = [];
+    fileInput.value = '';
+    document.getElementById('file-chips').innerHTML = '';
+  }
+}
+
+sendBtn.addEventListener('click', sendMessage);
+</script>
+
+
+<aside id="right">
+
+  <div class="panel-header">
+    <span class="panel-title">Extracted</span>
+    <span class="badge" id="extract-count">0</span>
+  </div>
+
+  <div class="panel-scroll" id="extract-list">
+    <div class="empty-state" id="extract-empty">
+      <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16
+             m-2-2l1.586-1.586a2 2 0 012.828 0L20 14
+             m-6-6h.01
+             M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+      <span>Extracted text and<br>OCR results appear here</span>
+    </div>
+  </div>
+
+  <div id="errors-bar"></div>
+
+</aside>
+
+<script>
+
+let extractCount = 0;
+
+function addExtractCard(name, content, confidence) {
+  document.getElementById('extract-empty').style.display = 'none';
+
+  const confNum   = parseFloat(confidence);
+  const confLabel = isNaN(confNum) ? '' : `${Math.round(confNum * 100)}%`;
+
+  const card = document.createElement('div');
+  card.className = 'extract-card';
+  card.innerHTML = `
+    <div class="extract-card-header">
+      <span class="extract-card-name">${name}</span>
+      ${confLabel ? `<span class="conf-badge">${confLabel}</span>` : ''}
+    </div>
+    <div class="extract-card-body">${content}</div>`;
+
+  document.getElementById('extract-list').appendChild(card);
+  extractCount++;
+  document.getElementById('extract-count').textContent = extractCount;
+}
+
+function showErrors(errs) {
+  const bar = document.getElementById('errors-bar');
+  bar.style.display = 'block';
+  bar.textContent = errs.join(' · ');
+}
+
+function resetRightPanel() {
+  const list = document.getElementById('extract-list');
+  list.innerHTML = `
+    <div class="empty-state" id="extract-empty">
+      <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16
+             m-2-2l1.586-1.586a2 2 0 012.828 0L20 14
+             m-6-6h.01
+             M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+      <span>Extracted text and<br>OCR results appear here</span>
+    </div>`;
+  document.getElementById('errors-bar').style.display = 'none';
+  extractCount = 0;
+  document.getElementById('extract-count').textContent = 0;
+}
+</script>
+
+</div>
+
+<script>
+function setStatus(state, label) {
+  const dot = document.getElementById('status-dot');
+  const lbl = document.getElementById('status-label');
+  dot.className = 'status-dot' + (state === 'active' ? ' active' : '');
+  lbl.textContent = label;
+}
+</script>
+
+</body>
+</html>

@@ -11,9 +11,12 @@ SYSTEM = """You are a multi-source analyst. You will receive information extract
 1. A clear comparative or combined analysis
 2. Key similarities and differences (if applicable)
 3. A unified conclusion answering the user's query
+IMPORTANT:
+Return response as plain text suitable for display inside a textarea.
+No markdown formatting whatsoever.
 """
 
-def cross_input_node(state: State) -> dict:
+async def cross_input_node(state: State) -> dict:
     extracted = state.get("extracted_texts", {})
     raw_text = state.get("raw_text","Analyze all available sources.")
     audio_transcript = state.get("audio_transcript","")
@@ -40,7 +43,7 @@ def cross_input_node(state: State) -> dict:
         SystemMessage(content=SYSTEM),
         {"role": "user", "content": f"User Query: {raw_text}\n\nSources:\n\n{source_text}"},
     ]
-    response = llm.invoke(messages)
+    response = await llm.ainvoke(messages)
 
     return {"messages": [response],"plan_trace":  ["Cross_query_Node: analysis is done"],
         }

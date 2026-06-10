@@ -70,7 +70,7 @@ class PlannerOutput(TypedDict):
 planner_llm = llm.with_structured_output(PlannerOutput, include_raw=False)
 
 
-def planner_node(state: State) -> dict:
+async def planner_node(state: State) -> dict:
     chain = PROMPT | planner_llm
 
     last_node_output = state.get("last_node_output", "none")
@@ -83,7 +83,7 @@ def planner_node(state: State) -> dict:
                 break
 
     try:
-        plan = chain.invoke({
+        plan = await chain.ainvoke({
             "raw_text": state["raw_text"],
             "file_registry": json.dumps({k: v["type"] for k, v in state.get("file_registry", {}).items()}),
             "extracted_texts": json.dumps(state.get("extracted_texts", {})),

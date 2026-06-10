@@ -8,9 +8,12 @@ llm = get_llm()
 
 SYSTEM = """You are a code reviewer.
 do code review and return ONLY:
-language, explanation, bugs, time_complexity, space_complexity"""
+language, explanation, bugs, time_complexity, space_complexity
+IMPORTANT:
+Return response as plain text suitable for display inside a textarea.
+No markdown formatting whatsoever."""
 
-def code_node(state: State) -> dict:
+async def code_node(state: State) -> dict:
     extracted = state.get("extracted_texts", {})
     raw=state.get("raw_text", "")
     if not extracted:
@@ -24,7 +27,6 @@ def code_node(state: State) -> dict:
         {"role": "user", "content": f"{code_text}"},
     ]
     
-    response = llm.invoke(messages)
-
+    response = await llm.ainvoke(messages)
     return {"messages": [response],"plan_trace": ["Code_Node:Code is reviewed"],
-        }
+    }

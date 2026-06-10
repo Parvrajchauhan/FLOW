@@ -7,9 +7,12 @@ llm = get_llm()
 SYSTEM = """You are a helpful, friendly conversational AI assistant. 
 Answer the user's question clearly and helpfully.
 If there is extracted content available, use it to answer more accurately.
-Keep responses concise but complete."""
+Keep responses concise but complete.
+IMPORTANT:
+Return response as plain text suitable for display inside a textarea.
+No markdown formatting whatsoever."""
 
-def qa_node(state: State) -> dict:
+async def qa_node(state: State) -> dict:
     extracted = state.get("extracted_texts", {})
     raw_text = state.get("raw_text","")
     audio_transcript = state.get("audio_transcript","")
@@ -38,6 +41,6 @@ def qa_node(state: State) -> dict:
         {"role": "user", "content": user_message},
     ]
 
-    response = llm.invoke(messages)
+    response = await llm.ainvoke(messages)
     return {"messages": [response],"plan_trace": ["QA_Node: query is answered"],
         }

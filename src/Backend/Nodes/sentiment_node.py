@@ -4,9 +4,12 @@ from langchain_core.messages import SystemMessage
 
 llm = get_llm()
 
-SYSTEM = """ You are a sentiment analyzer. Return ONLY: label (positive, negative or neutral), confidence (0.0 to 1.0), justification (one sentence) No extra text."""
+SYSTEM = """ You are a sentiment analyzer. Return ONLY: label (positive, negative or neutral), confidence (0.0 to 1.0), justification (one sentence) No extra text.
+IMPORTANT:
+Return response as plain text suitable for display inside a textarea.
+No markdown formatting whatsoever."""
 
-def sentiment_node(state: State) -> dict:
+async def sentiment_node(state: State) -> dict:
     extracted = state.get("extracted_texts", {})
     raw_text = state.get("raw_text","Analyze all available sources.")
     audio_transcript = state.get("audio_transcript","")
@@ -31,7 +34,7 @@ def sentiment_node(state: State) -> dict:
         {"role": "user", "content": f"Text to analyse:\n\n{source_text} raw query:{raw_text}"},
     ]
 
-    response = llm.invoke(messages)
+    response = await llm.ainvoke(messages)
     
     return {"messages": [response],"plan_trace":["Sentiment_node: sentiment is determined"],
         }

@@ -5,9 +5,12 @@ from langchain_core.messages import SystemMessage, AIMessage
 llm = get_llm()
 
 SYSTEM = """You are a summarizer. Return ONLY valid answer structure: one liner summary, three bullets and five sentences summary.
-No more than this."""
+No more than this.
+IMPORTANT:
+Return response as plain text suitable for display inside a textarea.
+No markdown formatting whatsoever."""
 
-def summarize_node(state: State) -> dict:
+async def summarize_node(state: State) -> dict:
     extracted = state.get("extracted_texts", {})
     raw_text = state.get("raw_text","Analyze all available sources.")
     audio_transcript = state.get("audio_transcript","")
@@ -32,7 +35,7 @@ def summarize_node(state: State) -> dict:
         {"role": "user", "content": f"Content to summarize:\n\n{source_text} raw query:{raw_text}"},
     ]
 
-    response = llm.invoke(messages)
+    response = await llm.ainvoke(messages)
 
     return {"messages": [response],"plan_trace":  ["Summarize_node: Text is Summarized"],
         }

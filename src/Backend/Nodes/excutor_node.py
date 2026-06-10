@@ -91,7 +91,7 @@ def parse_tool_results(state: State) -> dict:
     }
 
 
-def executor_node(state: State) -> dict:
+async def executor_node(state: State) -> dict:
     updates = parse_tool_results(state)
 
     tool_call = str(state.get("tool_call", "")).strip().lower()
@@ -115,7 +115,7 @@ def executor_node(state: State) -> dict:
     )
 
     messages_to_send = [SystemMessage(content=system),HumanMessage(content=f"Execute tool: {tool_call}")]
-    response = executor_llm.invoke(messages_to_send)
+    response = await executor_llm.ainvoke(messages_to_send)
 
     return {
         "messages": [response],

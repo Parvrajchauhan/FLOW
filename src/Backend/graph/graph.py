@@ -70,5 +70,5 @@ builder.add_edge("formatter", END)
 
 graph = builder.compile()
 
-def get_grap():
+def compiled_graph():
     return graph
