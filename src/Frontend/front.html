@@ -10,10 +10,11 @@
 
 <div id="app">
   <header id="topbar">
-    <div class="logo">FLOW <span>/ Multi Modal Agentic AI</span></div>
-    <div id="status-label">idle</div>
-    <div class="status-dot" id="status-dot"></div>
-  </header>
+  <div class="logo">FLOW <span>/ Multi Modal Agentic AI</span></div>
+  <div class="topbar-actions">
+    <button id="about-btn" class="about-btn">About FLOW</button>
+  </div>
+</header>
 
 <aside id="left">
 
@@ -265,21 +266,12 @@ async function sendMessage() {
 
   let reqInit;
 
-  if (attachedFiles.length > 0) {
-    const fd = new FormData();
-    fd.append('message', text || 'Process this file.');
-    fd.append('session_id', 'ui-session');
-    attachedFiles.forEach(file => {
-  fd.append('files', file, file.name);
-});
-    reqInit = { method: 'POST', body: fd };               
-  } else {
-    reqInit = {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text, session_id: 'ui-session' }),
-    };
-  }
+  const fd = new FormData();
+fd.append('message', text || '');
+fd.append('session_id', 'ui-session');
+attachedFiles.forEach(file => fd.append('files', file, file.name));
+
+reqInit = { method: 'POST', body: fd };
 
   try {
   const resp = await fetch(API, reqInit);
@@ -480,12 +472,102 @@ function resetRightPanel() {
 
 <script>
 function setStatus(state, label) {
-  const dot = document.getElementById('status-dot');
-  const lbl = document.getElementById('status-label');
-  dot.className = 'status-dot' + (state === 'active' ? ' active' : '');
-  lbl.textContent = label;
+  console.log(`Status: ${state} - ${label}`);
 }
+document.addEventListener('DOMContentLoaded', () => {
+  const aboutBtn = document.getElementById('about-btn');
+  const modal    = document.getElementById('about-modal');
+  const closeBtn = document.getElementById('close-modal');
+
+  aboutBtn.addEventListener('click', () => modal.style.display = 'flex');
+  closeBtn.addEventListener('click', () => modal.style.display = 'none');
+  window.addEventListener('click', e => {
+    if (e.target === modal) modal.style.display = 'none';
+  });
+});
 </script>
 
+<div id="about-modal" class="modal">
+  <div class="modal-content">
+
+    <span id="close-modal" class="close-btn">&times;</span>
+
+    <h2>FLOW</h2>
+    <p class="modal-tagline">Multi Modal Agentic AI built with LangGraph, FastAPI.</p>
+
+    <section class="modal-section">
+      <h3>What is FLOW?</h3>
+      <p>
+        FLOW is a deployed agentic application that accepts multiple input types simultaneously 
+        Text, Images, PDFs, and Audio extracts their content, understands your goal, and
+        autonomously performs the correct task. Complex, multistep queries are handled in a
+        single request with no stepbystep prompting required.
+      </p>
+    </section>
+
+    <section class="modal-section">
+      <h3>Supported Inputs</h3>
+      <ul class="modal-list">
+        <li><strong>Text</strong> plain or structured queries</li>
+        <li><strong>Image</strong> (JPG/PNG) OCR extraction with confidence score</li>
+        <li><strong>PDF</strong> text parsing + OCR fallback for scanned docs</li>
+        <li><strong>Audio</strong> (MP3/WAV/M4A)  speech-to-text + cleanup</li>
+        <li><strong>Multiple files at once</strong> cross-input reasoning supported</li>
+      </ul>
+    </section>
+
+    <section class="modal-section">
+      <h3>What the Agent Can Do</h3>
+      <ul class="modal-list">
+        <li>Extract &amp; transcribe content from any input type</li>
+        <li>Fetch YouTube transcripts from URLs found inside PDFs or images</li>
+        <li>Summarize: 1-line summary, 3 bullets, 5-sentence summary</li>
+        <li>Sentiment analysis: label, confidence &amp; justification</li>
+        <li>Code explanation: logic, bugs &amp; time complexity</li>
+        <li>Cross-input reasoning: compare audio vs PDF, combine sources</li>
+        <li>Ask a clarifying question if the goal is ambiguous never guesses</li>
+      </ul>
+    </section>
+
+    <section class="modal-section">
+      <h3>Agent Architecture</h3>
+      <img
+        src="/static/graph.png"
+        alt="FLOW Agent Graph :LangGraph pipeline"
+        class="graph-image"
+      >
+      <div class="arch-nodes">
+        <span class="arch-node">Planner</span>
+        <span class="arch-arrow">→</span>
+        <span class="arch-node">Router</span>
+        <span class="arch-arrow">→</span>
+        <span class="arch-node">QA / Tool / Code</span>
+        <span class="arch-arrow">→</span>
+        <span class="arch-node">Formatter</span>
+        <span class="arch-arrow">→</span>
+        <span class="arch-node">Streaming Output</span>
+      </div>
+    </section>
+
+    <section class="modal-section">
+      <h3>Bonus Features</h3>
+      <ul class="modal-list">
+        <li>Token-by-token streaming output in chat UI</li>
+        <li>Real-time plan trace see every tool invoked and in what order</li>
+        <li>Extracted content panel alongside final agent response</li>
+      </ul>
+    </section>
+
+<section class="modal-section">
+  <h3>Conversation Memory Not Available</h3>
+  <p>
+    FLOW currently does not retain conversational history between messages.
+    Each request is processed independently, so the agent may not remember
+    information shared earlier in the conversation.
+  </p>
+</section>
+
+  </div>
+</div>
 </body>
 </html>
